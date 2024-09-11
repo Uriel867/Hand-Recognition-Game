@@ -2,6 +2,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
+from Ball import Ball
+
 
 def HandGunGame():
     # Initialize MediaPipe Hands module
@@ -17,13 +19,9 @@ def HandGunGame():
     # Tolerance for detecting overlapping landmarks
     tolerance = 0.042
 
-    # Circle properties
-    circle_x = 100  # Start position for the circle
-    circle_y = 100  # Start position for the circle
-    circle_radius = 10
-    speed_x = 2
-    speed_y = 2
     direction = [1, 1]
+
+    ball = Ball(100,100,10,2)
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -41,29 +39,29 @@ def HandGunGame():
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 # Get the position of the 6th landmark to reset circle position
-                hand_circle_x = int(hand_landmarks.landmark[6].x * frame.shape[1])
-                hand_circle_y = int(hand_landmarks.landmark[6].y * frame.shape[0])
+                hand_ball_x = int(hand_landmarks.landmark[6].x * frame.shape[1])
+                hand_ball_y = int(hand_landmarks.landmark[6].y * frame.shape[0])
 
                 # Check if the landmarks are on top of each other
                 if (abs(hand_landmarks.landmark[4].x - hand_landmarks.landmark[6].x) < tolerance and
                         abs(hand_landmarks.landmark[4].y - hand_landmarks.landmark[6].y) < tolerance):
 
-                    print("The landmarks are on top of each other.")
                     direction = get_finger_direction(hand_landmarks, frame)
-                    # Optional: Reset circle position to the hand landmark position
-                    circle_x, circle_y = hand_circle_x, hand_circle_y
+
+                    ball.set_x(hand_ball_x)
+                    ball.set_y(hand_ball_y)
 
                 # Draw landmarks on the frame
                 mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-        # Update circle position for animation
-        circle_x += speed_x * direction[0]
-        circle_y += speed_y * direction[1]
+
+        ball.set_x(ball.get_x() + (ball.get_speed() * direction[0]))
+        ball.set_y(ball.get_y() + (ball.get_speed() * direction[1]))
 
 
-
-        # Draw the animated circle at the updated position
-        cv2.circle(frame, (int(circle_x), int(circle_y)), circle_radius, (0, 255, 0), -1)
+        if(not ball.check_boundaries(frame)):
+            # Draw the animated circle at the updated position
+            cv2.circle(frame, (int(ball.get_x()), int(ball.get_y())), ball.get_radius(), (0, 255, 0), -1)
 
         # Display the frame with hand landmarks and the animated circle
         cv2.imshow('Hand Recognition', frame)
